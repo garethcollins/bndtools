@@ -17,6 +17,7 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceChangeEvent;
+import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.IResourceDelta;
 import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.IWorkspace;
@@ -29,13 +30,13 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.osgi.framework.Version;
-import bndtools.api.ILogger;
 
 import aQute.bnd.build.Project;
 import aQute.bnd.build.Workspace;
 import aQute.bnd.build.WorkspaceRepository;
 import aQute.bnd.service.Refreshable;
 import aQute.bnd.service.RepositoryPlugin;
+import bndtools.api.ILogger;
 
 public class Central {
     private static final ILogger logger = Logger.getLogger();
@@ -215,6 +216,47 @@ public class Central {
 
         // Initialize projects in synchronized block
         workspace.getBuildOrder();
+
+        // Listen to changes in cnf, refresh workspace
+        eclipseWorkspace.addResourceChangeListener(new IResourceChangeListener() {
+
+            public synchronized void resourceChanged(IResourceChangeEvent event) {
+                if (event.getType() != IResourceChangeEvent.POST_CHANGE)
+                    return;
+
+                IResourceDelta rootDelta = event.getDelta();
+                try {
+                    rootDelta.accept(new IResourceDeltaVisitor() {
+                        public boolean visit(IResourceDelta delta) throws CoreException {
+                            try {
+
+                                IPath location = delta.getResource().getLocation();
+                                if (location == null) {
+                                    System.out.println("Cannot convert resource to file: " + delta.getResource());
+                                } else {
+                                    File file = location.toFile();
+                                    File parent = file.getParentFile();
+                                    boolean parentIsWorkspace = parent.equals(getWorkspace().getBase());
+
+                                    if (parentIsWorkspace) {
+                                        if (file.getName().equals(Workspace.CNFDIR)) {
+                                            workspace.refresh();
+                                            return false;
+                                        }
+                                    }
+                                }
+                                return true;
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                throw new CoreException(new Status(Status.ERROR, Activator.PLUGIN_ID, "During checking project changes", e));
+                            }
+                        }
+                    });
+                } catch (CoreException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
 
         return workspace;
     }
