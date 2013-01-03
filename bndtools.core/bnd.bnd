@@ -37,6 +37,7 @@ Export-Package: bndtools.api.*,\
 	bndtools.editor.model,\
 	bndtools.launch.ui,\
 	bndtools.model.clauses,\
+	bndtools.ignores,\
 	org.bndtools.build.api,\
 	org.bndtools.core.ui,\
 	org.osgi.service.resolver;provide:=true;-split-package:=merge-first,\
