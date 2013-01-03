@@ -39,6 +39,7 @@ import bndtools.Central;
 import bndtools.Logger;
 import bndtools.Plugin;
 import bndtools.api.ILogger;
+import bndtools.ignores.IgnoreUtils;
 import bndtools.utils.BundleUtils;
 import bndtools.wizards.workspace.CnfInfo.Existence;
 
@@ -156,6 +157,9 @@ public class CnfSetupTask extends WorkspaceModifyOperation {
 
             copyBundleEntries(bundle, path, new Path(path), cnfProject, progress.newChild(1, SubMonitor.SUPPRESS_NONE));
         }
+
+        IgnoreUtils.createIgnoreFile(cnfProject, null, templateConfig.getAttribute("ignores"));
+
         try {
             Central.getWorkspace().refresh();
         } catch (Exception e) {
